@@ -1160,7 +1160,7 @@ function viewInv() {
     ${[['all', 'Все'], ['profile', 'В профиле'], ['vault', 'Платформа'], ['sale', 'Продажа']].map(([k, v]) => `<button class="${f === k ? 'on' : ''}" data-a="invf" data-v="${k}">${v}</button>`).join('')}</div>
   ${list.length ? `<div class="lots">${list.map((it, i) => `<button class="lot" data-a="item" data-id="${it.id}" style="animation-delay:${i * 40}ms">${giftArt(it)}${whereTag(it)}
     <div class="lot-n">${nm(it)}</div><div class="lot-s">#${it.num} · ${it.model}</div><div class="lot-p" style="font-weight:700;font-size:13.5px"><span class="muted" style="font-weight:600">≈</span>${P(itemValue(it))}</div></button>`).join('')}</div>`
-    : (S.items.length && f !== 'sale' ? `<div class="empty"><b>🎁</b>В этой категории пока пусто.</div>` : noGifts(S.items.length ? '' : '<br>Или купите подарок на маркете, и он появится здесь.'))}
+    : (S.items.length && f !== 'sale' ? `<div class="empty"><b>🎁</b>В этой категории пока пусто.</div>` : noGifts())}
   <div class="twoc"><button class="btn ghost sm" data-a="sell">Продать подарок</button><button class="btn ghost sm" data-a="swap">Обменять</button></div>`;
 }
 const HK = { deposit: ['⬆️', 'Пополнения'], withdraw: ['⬇️', 'Выводы'], buy: ['🛒', 'Покупки'], sell: ['💰', 'Продажи'], swap: ['🔁', 'Обмены'] };
@@ -1270,7 +1270,7 @@ const attrsHtml = it => `<div class="attrs"><div><span>Модель</span><b>${i
   <div><span>Фон</span><b>${it.bd} ${rarChip(it.br)}</b></div><div><span>Узор</span><b>${it.pat} ${rarChip(it.pr)}</b></div>
   <div><span>Количество</span><b>${(it.left || 0).toLocaleString('ru-RU')} <span class="muted" style="font-weight:500">из ${COL[it.col].issued.toLocaleString('ru-RU')}</span></b></div>
   ${it.rub ? `<div><span>Оценка Telegram</span><b>~${it.rub.toLocaleString('ru-RU')} ₽</b></div>` : ''}</div>`;
-const noGifts = (extra = '') => `<div class="empty" style="margin-top:14px"><b>🎁</b>У вас нет подарков на продаже.<br>Чтобы выставить подарок, передайте его на хранилище <span class="stor">${CFG.storage}</span>.${extra}<button class="btn primary" data-a="storage">Открыть хранилище</button></div>`;
+const noGifts = (extra = '') => `<div class="empty" style="margin-top:14px"><b>🎁</b>У вас нет подарков на продаже.<br>Чтобы выставить подарок, передайте его на хранилище <span class="stor">${CFG.storage}</span>.<br>Или купите подарок на маркете, и он появится здесь.<button class="btn primary" data-a="storage">Открыть хранилище</button></div>`;
 const pickGrid = (list, { sub } = {}) => list.length ? `<div class="pgrid">${list.map(it => `<button class="pick" data-id="${it.id}">${giftArt(it)}<div class="pn">${nm(it)}</div><div class="pm">#${it.num} · ${sub ? sub(it) : '≈ ' + Pn(itemValue(it))}</div></button>`).join('')}</div>`
   : noGifts();
 function wirePick(list, cb) { $$('.pick', body).forEach(el => el.onclick = () => { $$('.pick', body).forEach(x => x.classList.remove('sel')); el.classList.add('sel'); hap(); cb(list.find(i => String(i.id) === el.dataset.id)); }); }
