@@ -349,6 +349,11 @@ button.row{transition:background .2s}button.row:active{background:var(--s2)}
 .promo input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(91,124,255,.18)}
 .promo .btn{width:auto;padding:0 16px;white-space:nowrap}
 .promo-adm{padding:14px;border-radius:18px;border:1px solid var(--line);background:var(--s1)}
+.curseg{display:flex;gap:8px;padding:0 14px 14px}
+.curseg button{flex:1;padding:11px 6px;border-radius:13px;border:1px solid var(--line);background:var(--s1);color:var(--muted);font-weight:600;font-size:13px}
+.curseg button.on{background:linear-gradient(135deg,var(--acc),#8a5cff);color:#fff;border-color:transparent}
+.empty .btn{margin-top:14px;color:#fff;font-size:15px}
+.empty .stor{color:#fff;font-weight:700}
 </style>
 </head>
 <body>
@@ -376,6 +381,7 @@ button.row{transition:background .2s}button.row:active{background:var(--s2)}
 /* ============ Подарки: данные с реальных страниц Telegram + запасные рисунки ============ */
 let _uid = 0; const uid = () => 'u' + (++_uid);
 const grad = (id, c1, c2, x2 = 0, y2 = 1) => `<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>`;
+const UAH_PER_TON = 47.39; // курс TON → ₴ (НБУ 45,32 ₴/$ на 9 ноября 2026 × цена TON ≈ $1,046). Обновите при необходимости
 const RUB_PER_TON = 87.24; // курс TON → ₽ (CoinMarketCap, 8 ноября 2026). Обновите при необходимости
 
 // Цвета фонов и узоры (названия как в Telegram)
@@ -1009,6 +1015,8 @@ function colStats(key) {
 /* ============ Настройки: замените на свои значения ============ */
 const CFG = {
   demo: false,                         // true — показывать метку «ДЕМО»
+  uahPerTon: UAH_PER_TON,              // курс для показа цен в гривнах (дополнительная валюта)
+  storage: '@TradeRelayerBot',         // хранилище: сюда нужно передать подарки, чтобы выставить их на продажу
   rubPerTon: RUB_PER_TON,              // курс для показа цен в рублях (примерный, обновите)
   fee: 0.05,                           // комиссия сервиса с продажи
   instantRate: 0.92,                   // выкуп «сразу» = оценка × это число
@@ -1033,10 +1041,13 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const fmt = n => Number(n).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const parse = v => parseFloat(String(v).replace(',', '.').replace(/[^0-9.]/g, ''));
-const S = { tab: 'home', balance: 0, rub: true, hap: true, market: { q: '', col: 'all', sort: 'new', tier: 'all', view: 'grid' }, inv: 'all', wf: 'all', items: [], lots: [], deals: [], history: [], shown: 0, seq: 100 };
+const S = { tab: 'home', balance: 0, cur: 'RUB', hap: true, market: { q: '', col: 'all', sort: 'new', tier: 'all', view: 'grid' }, inv: 'all', wf: 'all', items: [], lots: [], deals: [], history: [], shown: 0, seq: 100 };
 const rub = n => Math.round(n * CFG.rubPerTon).toLocaleString('ru-RU') + ' ₽';
-const P = n => S.rub ? rub(n) : fmt(n) + ' TON';
-const Pn = n => S.rub ? rub(n) : fmt(n);
+const CURS = { RUB: { sym: '₽', code: 'RUB', name: 'Рубли', rate: () => CFG.rubPerTon }, UAH: { sym: '₴', code: 'UAH', name: 'Гривны', rate: () => CFG.uahPerTon }, TON: { sym: 'T', code: 'TON', name: 'TON', rate: () => 1 } };
+const isFiat = () => S.cur !== 'TON';
+const money = n => Math.round(n * CURS[S.cur].rate()).toLocaleString('ru-RU') + ' ' + CURS[S.cur].sym;
+const P = n => isFiat() ? money(n) : fmt(n) + ' TON';
+const Pn = n => isFiat() ? money(n) : fmt(n);
 const nm = it => COL[it.col].name;
 const rareScore = it => -(Math.log(it.mr / 100) + Math.log(it.br / 100) + Math.log(it.pr / 100));
 const TIERS = { legend: { n: 'Легендарный', c: '#ffbe55' }, epic: { n: 'Эпический', c: '#b46bff' }, rare: { n: 'Редкий', c: '#4fa3ff' }, common: { n: 'Обычный', c: '#7d86a8' } };
@@ -1049,8 +1060,8 @@ function countTo(el, from, to, ms = 900, usdEl) {
   const t0 = performance.now();
   const step = now => {
     const p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 4), v = from + (to - from) * e;
-    el.textContent = S.rub ? Math.round(v * CFG.rubPerTon).toLocaleString('ru-RU') : fmt(v);
-    if (usdEl) usdEl.textContent = S.rub ? fmt(v) + ' TON' : '≈ ' + rub(v);
+    el.textContent = isFiat() ? Math.round(v * CURS[S.cur].rate()).toLocaleString('ru-RU') : fmt(v);
+    if (usdEl) usdEl.textContent = isFiat() ? fmt(v) + ' TON' : '≈ ' + rub(v);
     if (p < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
@@ -1072,7 +1083,7 @@ const freeItems = () => S.items.filter(i => !i.listed && !i.locked);
 const lotCard = (l, i = 0) => `<button class="lot" data-a="lot" data-id="${l.id}" style="--glow:${bdOf(l)};animation-delay:${Math.min(i, 10) * 35}ms">
   ${giftArt(l)}${l.mine ? '<span class="tag mine">Ваш лот</span>' : ''}${tierTag(l)}
   <span class="txt"><div class="lot-n">${nm(l)}</div><div class="lot-s">#${l.num} · ${l.model}</div><div class="lot-x">${l.bd} · ${l.pat}</div>
-  <div class="lot-p">${S.rub ? '' : '<i class="coin">T</i>'}${Pn(l.price)}</div></span></button>`;
+  <div class="lot-p">${isFiat() ? '' : '<i class="coin">T</i>'}${Pn(l.price)}</div></span></button>`;
 const rareCard = l => `<button class="rcard" data-a="lot" data-id="${l.id}" style="--glow:${bdOf(l)}">${giftArt(l)}${tierTag(l)}
   <div class="rn">${nm(l)} #${l.num}</div><div class="rm">${l.model} · ${l.pat}</div><div class="rp">${P(l.price)}</div></button>`;
 const spark = (arr, up) => {
@@ -1103,7 +1114,7 @@ function viewHome() {
   const rares = S.lots.slice().sort((a, b) => b.price - a.price).slice(0, 8);
   return `<button class="bal" data-a="tab" data-v="wallet" aria-label="Баланс, открыть кошелёк">
     <div class="l">Ваш баланс <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${IC.chev}</svg></div>
-    <div class="v"><span class="n num" id="balBig">0,00</span><span class="c">${S.rub ? 'RUB' : 'TON'}</span></div>
+    <div class="v"><span class="n num" id="balBig">0,00</span><span class="c">${CURS[S.cur].code}</span></div>
     <div class="u num" id="balAlt"></div>
     <div class="chips"><span class="chip">На продаже<b>${onSale}</b></span><span class="chip">В обмене<b>${inSwap}</b></span><span class="chip">Подарков<b>${S.items.length}</b></span></div>
     <div class="shine"></div></button>
@@ -1149,15 +1160,15 @@ function viewInv() {
     ${[['all', 'Все'], ['profile', 'В профиле'], ['vault', 'Платформа'], ['sale', 'Продажа']].map(([k, v]) => `<button class="${f === k ? 'on' : ''}" data-a="invf" data-v="${k}">${v}</button>`).join('')}</div>
   ${list.length ? `<div class="lots">${list.map((it, i) => `<button class="lot" data-a="item" data-id="${it.id}" style="animation-delay:${i * 40}ms">${giftArt(it)}${whereTag(it)}
     <div class="lot-n">${nm(it)}</div><div class="lot-s">#${it.num} · ${it.model}</div><div class="lot-p" style="font-weight:700;font-size:13.5px"><span class="muted" style="font-weight:600">≈</span>${P(itemValue(it))}</div></button>`).join('')}</div>`
-    : `<div class="empty"><b>🎁</b>${S.items.length ? 'В этой категории пока пусто.' : 'У вас пока нет подарков.<br>Купите подарок на маркете, и он появится здесь.'}</div>`}
+    : (S.items.length && f !== 'sale' ? `<div class="empty"><b>🎁</b>В этой категории пока пусто.</div>` : noGifts(S.items.length ? '' : '<br>Или купите подарок на маркете, и он появится здесь.'))}
   <div class="twoc"><button class="btn ghost sm" data-a="sell">Продать подарок</button><button class="btn ghost sm" data-a="swap">Обменять</button></div>`;
 }
 const HK = { deposit: ['⬆️', 'Пополнения'], withdraw: ['⬇️', 'Выводы'], buy: ['🛒', 'Покупки'], sell: ['💰', 'Продажи'], swap: ['🔁', 'Обмены'] };
 function viewWallet() {
   const f = S.wf, list = S.history.filter(h => f === 'all' || h.k === f);
   return `<div class="h1">Кошелёк</div>
-  <div class="bal" style="cursor:default"><div class="l">Доступно</div><div class="v"><span class="n num" id="balBig2">${S.rub ? Math.round(S.balance * CFG.rubPerTon).toLocaleString('ru-RU') : fmt(S.balance)}</span><span class="c">${S.rub ? 'RUB' : 'TON'}</span></div>
-    <div class="u num">${S.rub ? fmt(S.balance) + ' TON' : '≈ ' + rub(S.balance)}</div><div class="shine"></div></div>
+  <div class="bal" style="cursor:default"><div class="l">Доступно</div><div class="v"><span class="n num" id="balBig2">${isFiat() ? Math.round(S.balance * CURS[S.cur].rate()).toLocaleString('ru-RU') : fmt(S.balance)}</span><span class="c">${CURS[S.cur].code}</span></div>
+    <div class="u num">${isFiat() ? fmt(S.balance) + ' TON' : '≈ ' + rub(S.balance)}</div><div class="shine"></div></div>
   <div class="twoc"><button class="btn primary sm" data-a="deposit">Пополнить</button><button class="btn ghost sm" data-a="withdraw">Вывести</button></div>
   <section class="sec"><div class="sec-h"><h3>История операций</h3></div>
   <div class="fchips"><button class="fc ${f === 'all' ? 'on' : ''}" data-a="wf" data-v="all">Все</button>${Object.entries(HK).map(([k, v]) => `<button class="fc ${f === k ? 'on' : ''}" data-a="wf" data-v="${k}">${v[1]}</button>`).join('')}</div>
@@ -1176,12 +1187,13 @@ function viewMore() {
     ${link('rules', '🛡️', 'Правила и безопасность', 'Как не потерять подарки')}
     ${link('about', 'ℹ️', 'О сервисе', 'Версия, условия, контакты')}</div></section>
   <section class="sec"><div class="sec-h"><h3>Настройки</h3></div><div class="list">
-    ${tog('trub', '₽', 'Цены в рублях', 'Показывать в ₽ вместо TON', S.rub)}
+    <div class="row" style="cursor:default"><div class="ri">💱</div><div class="rt"><b>Валюта</b><span>Основная — рубли, остальные — дополнительные</span></div></div>
+    <div class="curseg">${Object.entries(CURS).map(([k, c]) => `<button class="${S.cur === k ? 'on' : ''}" data-a="cur" data-v="${k}">${c.sym === 'T' ? 'TON' : c.sym + ' ' + c.name}</button>`).join('')}</div>
     ${tog('thap', '📳', 'Вибрация', 'Отклик при нажатиях', S.hap)}</div></section>
   ${PROMO_ON ? '' : `<section class="sec"><div class="sec-h"><h3>Промокод</h3></div><div class="promo"><input id="promoIn" type="text" placeholder="Введите промокод" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn primary sm" id="promoGo">Активировать</button></div></section>`}
   <p class="foot">GiftHub — независимый сервис.<br>Не связан с Telegram и не одобрен Telegram.<br>${CFG.demo ? 'Демонстрационная версия: данные и цены не настоящие.' : ''}</p>
   ${PROMO_ON ? `<section class="sec" style="margin-top:22px"><div class="sec-h"><h3>Управление балансом</h3><span>промокод активен</span></div>
-    <div class="promo-adm"><label class="field" style="margin:0 0 10px"><span>Сумма, ${S.rub ? '₽' : 'TON'}</span><input id="admAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></label>
+    <div class="promo-adm"><label class="field" style="margin:0 0 10px"><span>Сумма, ${isFiat() ? CURS[S.cur].sym : 'TON'}</span><input id="admAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></label>
     <div class="twoc"><button class="btn primary sm" id="admSet">Установить</button><button class="btn ghost sm" id="admAdd">Пополнить</button></div>
     <div class="twoc" style="margin-top:8px"><button class="btn ghost sm" id="admSub">Списать</button><button class="btn ghost sm" id="admZero">Обнулить</button></div></div></section>` : ''}`;
 }
@@ -1206,7 +1218,7 @@ function render(anim = true) {
     const g = $('#promoGo');
     if (g) { const inp = $('#promoIn'); const tryCode = async () => { const v = inp.value.trim(); if (!v) return; let ok = false; try { ok = (await sha256(v)) === PROMO_HASH; } catch (e) {} if (ok) { PROMO_ON = true; try { localStorage.setItem('gh_promo', PROMO_HASH); } catch (e) {} toast('Промокод активирован'); hap(); render(false); } else { toast('Неверный промокод'); inp.value = ''; } }; g.onclick = tryCode; inp.onkeydown = e => { if (e.key === 'Enter') tryCode(); }; }
     if ($('#admAmt')) {
-      const k = () => S.rub ? 1 / CFG.rubPerTon : 1, val = () => { const n = parseFloat(($('#admAmt').value || '').replace(/\s/g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? n * k() : null; };
+      const k = () => isFiat() ? 1 / CURS[S.cur].rate() : 1, val = () => { const n = parseFloat(($('#admAmt').value || '').replace(/\s/g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? n * k() : null; };
       const apply = nb => { S.balance = Math.max(0, +nb.toFixed(6)); setHeader(); hap(); toast('Баланс обновлён'); $('#admAmt').value = ''; };
       $('#admSet').onclick = () => { const v = val(); v === null ? toast('Введите сумму') : apply(v); };
       $('#admAdd').onclick = () => { const v = val(); v === null ? toast('Введите сумму') : apply(S.balance + v); };
@@ -1219,7 +1231,7 @@ function render(anim = true) {
 function setHeader() {
   const el = $('#hb'); if (!el) return;
   const from = parseFloat(el.dataset.v || 0); el.dataset.v = S.balance;
-  countTo(el, from, S.balance, 800); $('#hcur').textContent = S.rub ? '' : 'TON'; $('.bpill .coin').textContent = S.rub ? '₽' : 'T';
+  countTo(el, from, S.balance, 800); $('#hcur').textContent = isFiat() ? '' : 'TON'; $('.bpill .coin').textContent = CURS[S.cur].sym;
 }
 function go(tab) { if (S.tab === tab && $('#view').firstChild) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; } S.tab = tab; render(); window.scrollTo(0, 0); }
 
@@ -1258,8 +1270,9 @@ const attrsHtml = it => `<div class="attrs"><div><span>Модель</span><b>${i
   <div><span>Фон</span><b>${it.bd} ${rarChip(it.br)}</b></div><div><span>Узор</span><b>${it.pat} ${rarChip(it.pr)}</b></div>
   <div><span>Количество</span><b>${(it.left || 0).toLocaleString('ru-RU')} <span class="muted" style="font-weight:500">из ${COL[it.col].issued.toLocaleString('ru-RU')}</span></b></div>
   ${it.rub ? `<div><span>Оценка Telegram</span><b>~${it.rub.toLocaleString('ru-RU')} ₽</b></div>` : ''}</div>`;
+const noGifts = (extra = '') => `<div class="empty" style="margin-top:14px"><b>🎁</b>У вас нет подарков на продаже.<br>Чтобы выставить подарок, передайте его на хранилище <span class="stor">${CFG.storage}</span>.${extra}<button class="btn primary" data-a="storage">Открыть хранилище</button></div>`;
 const pickGrid = (list, { sub } = {}) => list.length ? `<div class="pgrid">${list.map(it => `<button class="pick" data-id="${it.id}">${giftArt(it)}<div class="pn">${nm(it)}</div><div class="pm">#${it.num} · ${sub ? sub(it) : '≈ ' + Pn(itemValue(it))}</div></button>`).join('')}</div>`
-  : `<div class="empty" style="margin-top:14px"><b>🎁</b>Нет подходящих подарков</div>`;
+  : noGifts();
 function wirePick(list, cb) { $$('.pick', body).forEach(el => el.onclick = () => { $$('.pick', body).forEach(x => x.classList.remove('sel')); el.classList.add('sel'); hap(); cb(list.find(i => String(i.id) === el.dataset.id)); }); }
 
 // Шаг «передайте подарок на специальный аккаунт»
@@ -1546,8 +1559,9 @@ const A = {
   mcol: d => { S.market.col = d.v; render(false); $('.fchips .on') && $('.fchips .on').scrollIntoView({ inline: 'center', block: 'nearest' }); },
   invf: d => { S.inv = d.v; render(false); }, wf: d => { S.wf = d.v; render(false); },
   mtier: d => { S.market.tier = d.v; if (S.tab !== 'market') go('market'); else render(false); }, mview: d => { S.market.view = d.v; render(false); },
+  storage: () => { const u = 'https://t.me/' + CFG.storage.replace('@', ''); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) {} },
   relayer: () => { const u = 'https://t.me/' + CFG.escrow.replace('@', ''); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) {} },
-  trub: () => { S.rub = !S.rub; render(false); }, thap: () => { S.hap = !S.hap; render(false); }
+  cur: d => { S.cur = d.v; hap(); render(false); setHeader(); }, thap: () => { S.hap = !S.hap; render(false); }
 };
 document.addEventListener('click', e => { const t = e.target.closest('[data-a]'); if (!t || !A[t.dataset.a]) return; hap('light'); A[t.dataset.a](t.dataset, t); });
 
