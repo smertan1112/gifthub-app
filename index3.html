@@ -1062,10 +1062,7 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
 (function seed() {
   S.lots = GIFTS.map(g => Object.assign({}, g));
   S.items = []; S.deals = [];
-  S.history = [
-    { k: 'deposit', t: 'Пополнение', s: '3 дня назад', a: 100 }, { k: 'sell', t: 'Продажа · Cookie Heart', s: 'Вчера', a: 61.2 },
-    { k: 'buy', t: 'Покупка · Ginger Cookie', s: '5 дней назад', a: -28 }, { k: 'withdraw', t: 'Вывод на кошелёк', s: '6 дней назад', a: -40 }
-  ];
+  S.history = [];
 })();
 
 const allLots = () => S.lots.concat(S.items.filter(i => i.listed).map(i => Object.assign({}, i, { price: i.listed, mine: true, seller: 'вы' })));
