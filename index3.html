@@ -343,6 +343,12 @@ button.row{transition:background .2s}button.row:active{background:var(--s2)}
 .gart .photo.hi.ok{opacity:1}
 .tagr.legend{background:linear-gradient(135deg,#ffd470,#ff9f3a)}.tagr.epic{background:linear-gradient(135deg,#d49bff,#8f5bff);color:#fff}.tagr.rare{background:linear-gradient(135deg,#7bc2ff,#3d7dff);color:#fff}
 .tagr{display:inline-block;margin-left:8px;vertical-align:middle;font-size:10px;font-weight:850;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:7px;color:#1a1200}
+
+.promo{display:flex;gap:10px;align-items:stretch}
+.promo input{flex:1;min-width:0;padding:13px 14px;border-radius:15px;border:1px solid var(--line);background:var(--s1);color:#fff;font-size:15px;outline:0}
+.promo input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(91,124,255,.18)}
+.promo .btn{width:auto;padding:0 16px;white-space:nowrap}
+.promo-adm{padding:14px;border-radius:18px;border:1px solid var(--line);background:var(--s1)}
 </style>
 </head>
 <body>
@@ -1002,7 +1008,7 @@ function colStats(key) {
 
 /* ============ Настройки: замените на свои значения ============ */
 const CFG = {
-  demo: true,                          // true — показывать метку «ДЕМО»
+  demo: false,                         // true — показывать метку «ДЕМО»
   rubPerTon: RUB_PER_TON,              // курс для показа цен в рублях (примерный, обновите)
   fee: 0.05,                           // комиссия сервиса с продажи
   instantRate: 0.92,                   // выкуп «сразу» = оценка × это число
@@ -1027,7 +1033,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const fmt = n => Number(n).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const parse = v => parseFloat(String(v).replace(',', '.').replace(/[^0-9.]/g, ''));
-const S = { tab: 'home', balance: 245.8, rub: true, hap: true, market: { q: '', col: 'all', sort: 'new', tier: 'all', view: 'grid' }, inv: 'all', wf: 'all', items: [], lots: [], deals: [], history: [], shown: 0, seq: 100 };
+const S = { tab: 'home', balance: 0, rub: true, hap: true, market: { q: '', col: 'all', sort: 'new', tier: 'all', view: 'grid' }, inv: 'all', wf: 'all', items: [], lots: [], deals: [], history: [], shown: 0, seq: 100 };
 const rub = n => Math.round(n * CFG.rubPerTon).toLocaleString('ru-RU') + ' ₽';
 const P = n => S.rub ? rub(n) : fmt(n) + ' TON';
 const Pn = n => S.rub ? rub(n) : fmt(n);
@@ -1175,8 +1181,19 @@ function viewMore() {
   <section class="sec"><div class="sec-h"><h3>Настройки</h3></div><div class="list">
     ${tog('trub', '₽', 'Цены в рублях', 'Показывать в ₽ вместо TON', S.rub)}
     ${tog('thap', '📳', 'Вибрация', 'Отклик при нажатиях', S.hap)}</div></section>
-  <p class="foot">GiftHub — независимый сервис.<br>Не связан с Telegram и не одобрен Telegram.<br>${CFG.demo ? 'Демонстрационная версия: данные и цены не настоящие.' : ''}</p>`;
+  ${PROMO_ON ? '' : `<section class="sec"><div class="sec-h"><h3>Промокод</h3></div><div class="promo"><input id="promoIn" type="text" placeholder="Введите промокод" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn primary sm" id="promoGo">Активировать</button></div></section>`}
+  <p class="foot">GiftHub — независимый сервис.<br>Не связан с Telegram и не одобрен Telegram.<br>${CFG.demo ? 'Демонстрационная версия: данные и цены не настоящие.' : ''}</p>
+  ${PROMO_ON ? `<section class="sec" style="margin-top:22px"><div class="sec-h"><h3>Управление балансом</h3><span>промокод активен</span></div>
+    <div class="promo-adm"><label class="field" style="margin:0 0 10px"><span>Сумма, ${S.rub ? '₽' : 'TON'}</span><input id="admAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></label>
+    <div class="twoc"><button class="btn primary sm" id="admSet">Установить</button><button class="btn ghost sm" id="admAdd">Пополнить</button></div>
+    <div class="twoc" style="margin-top:8px"><button class="btn ghost sm" id="admSub">Списать</button><button class="btn ghost sm" id="admZero">Обнулить</button></div></div></section>` : ''}`;
 }
+
+
+/* ---------- Промокод ---------- */
+const PROMO_HASH = '96ebf230f486f0a0347a5f6b5032a187a3cf511575acb1a1964d3b6999357abf';
+const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(x => x.toString(16).padStart(2, '0')).join('');
+let PROMO_ON = false; try { PROMO_ON = localStorage.getItem('gh_promo') === PROMO_HASH; } catch (e) {}
 
 /* ============ Роутер ============ */
 const VIEWS = { home: viewHome, market: viewMarket, gifts: viewInv, wallet: viewWallet, more: viewMore };
@@ -1187,6 +1204,18 @@ function render(anim = true) {
   if (S.tab === 'market') {
     const q = $('#q'); q.oninput = () => { S.market.q = q.value; $('#lotsGrid').innerHTML = lotsGridHtml(); $('#cnt').textContent = marketList().length + ' лотов'; };
     $('#sort').onchange = e => { S.market.sort = e.target.value; hap(); $('#lotsGrid').innerHTML = lotsGridHtml(); };
+  }
+  if (S.tab === 'more') {
+    const g = $('#promoGo');
+    if (g) { const inp = $('#promoIn'); const tryCode = async () => { const v = inp.value.trim(); if (!v) return; let ok = false; try { ok = (await sha256(v)) === PROMO_HASH; } catch (e) {} if (ok) { PROMO_ON = true; try { localStorage.setItem('gh_promo', PROMO_HASH); } catch (e) {} toast('Промокод активирован'); hap(); render(false); } else { toast('Неверный промокод'); inp.value = ''; } }; g.onclick = tryCode; inp.onkeydown = e => { if (e.key === 'Enter') tryCode(); }; }
+    if ($('#admAmt')) {
+      const k = () => S.rub ? 1 / CFG.rubPerTon : 1, val = () => { const n = parseFloat(($('#admAmt').value || '').replace(/\s/g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? n * k() : null; };
+      const apply = nb => { S.balance = Math.max(0, +nb.toFixed(6)); setHeader(); hap(); toast('Баланс обновлён'); $('#admAmt').value = ''; };
+      $('#admSet').onclick = () => { const v = val(); v === null ? toast('Введите сумму') : apply(v); };
+      $('#admAdd').onclick = () => { const v = val(); v === null ? toast('Введите сумму') : apply(S.balance + v); };
+      $('#admSub').onclick = () => { const v = val(); v === null ? toast('Введите сумму') : apply(S.balance - v); };
+      $('#admZero').onclick = () => apply(0);
+    }
   }
   S.shown = S.balance; setHeader();
 }
@@ -1507,7 +1536,7 @@ function rulesSheet() {
 function aboutSheet() {
   setBody(`<div class="st"><h2>О сервисе</h2><p class="sub">GiftHub — маркет и обмен коллекционных подарков.</p>
     <div class="rows"><div><span>Версия</span><b>1.0 ${CFG.demo ? '(демо)' : ''}</b></div><div><span>Комиссия продажи</span><b>${Math.round(CFG.fee * 100)}%</b></div><div><span>Сеть</span><b>TON</b></div></div>
-    <div class="warn" style="margin-top:12px"><span>ℹ️</span><span>Сервис независимый: он не связан с Telegram и не одобрен Telegram. Названия и картинки подарков в демо-версии оригинальные.${CFG.demo ? ' Цены, лоты и графики в демо-версии не настоящие.' : ''}</span></div>
+    <div class="warn" style="margin-top:12px"><span>ℹ️</span><span>Сервис независимый: он не связан с Telegram и не одобрен Telegram. ${CFG.demo ? ' Цены, лоты и графики в демо-версии не настоящие.' : ''}</span></div>
     <button class="btn ghost" id="ok">Закрыть</button></div>`);
   openSheet(); $('#ok').onclick = closeSheet;
 }
