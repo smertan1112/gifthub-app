@@ -3194,15 +3194,26 @@ function swapFlow(preLot, preItem) {
 }
 
 /* ============ Кошелёк: пополнение и вывод ============ */
-function depositSheet() {
-  setBody(`<div class="st"><h2>Пополнение</h2><p class="sub">Отправьте TON на адрес сервиса. Баланс обновится после подтверждения сети.</p>
+function depositSheet(mode) {
+  mode = mode === 'rub' ? 'rub' : 'ton';
+  const tabs = `<div class="seg" style="margin:10px 0 14px"><i style="width:calc(50% - 2px);transform:translateX(${mode === 'ton' ? 0 : 100}%)"></i><button class="${mode === 'ton' ? 'on' : ''}" id="mt">TON</button><button class="${mode === 'rub' ? 'on' : ''}" id="mr">Рубли ₽</button></div>`;
+  if (mode === 'rub') {
+    setBody(`<div class="st"><h2>Пополнение</h2>${tabs}<div class="fgl" style="margin-top:0">Сумма, ₽</div><div class="rng" style="grid-template-columns:1fr"><input id="ra" type="number" inputmode="numeric" placeholder="от 1 500"></div>
+      <div class="rows" style="margin-top:12px"><div><span>Минимальная сумма</span><b>1 500 ₽</b></div><div><span>Комиссия</span><b>10%</b></div><div class="big"><span>Будет зачислено</span><b id="rc">0 ₽</b></div></div>
+      <button class="btn primary" id="rg" style="margin-top:14px">Пополнить картой</button></div>`);
+    openSheet(); $('#mt').onclick = () => depositSheet('ton');
+    const ra = $('#ra'); ra.oninput = () => { const v = parseFloat(ra.value) || 0; $('#rc').textContent = Math.round(v * 0.9).toLocaleString('ru-RU') + ' ₽'; };
+    $('#rg').onclick = () => { const v = parseFloat(ra.value) || 0; if (v < 1500) return toast('Минимальная сумма пополнения 1 500 ₽'); toast('Пополнение картой пока недоступно'); };
+    return;
+  }
+  setBody(`<div class="st"><h2>Пополнение</h2>${tabs}<p class="sub">Отправьте TON на адрес сервиса. Баланс обновится после подтверждения сети.</p>
     <ol class="steps"><li>Скопируйте адрес<br><button class="copy" id="ca">${CFG.depositAddress} <span>⧉</span></button></li>
     ${CFG.depositMemo ? `<li>Укажите комментарий<br><button class="copy" id="cm">${CFG.depositMemo} <span>⧉</span></button></li>` : ''}
     <li>Отправьте перевод из своего кошелька</li></ol>
     <div class="warn"><span>⚠️</span><span>Отправляйте только TON. Сверяйте адрес с тем, что указан в приложении. Перевод на неверный адрес вернуть невозможно.</span></div>
     <div class="rows"><div><span>Минимальное пополнение</span><b>1 TON</b></div><div><span>Комиссия сервиса</span><b>0%</b></div></div>
     <button class="btn primary" id="go">Скопировать адрес</button></div>`);
-  openSheet();
+  openSheet(); $('#mr').onclick = () => depositSheet('rub');
   const cp = t => { try { navigator.clipboard && navigator.clipboard.writeText(t); } catch (e) {} hap('medium'); toast('Скопировано'); };
   $('#ca').onclick = $('#go').onclick = () => cp(CFG.depositAddress); if ($('#cm')) $('#cm').onclick = () => cp(CFG.depositMemo);
 }
