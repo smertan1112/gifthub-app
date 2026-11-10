@@ -399,6 +399,7 @@ button.row{transition:background .2s}button.row:active{background:var(--s2)}
 .srow{display:flex;align-items:center;gap:14px;width:100%;padding:13px 2px;text-align:left;font-size:15px;color:#fff}
 .rd{width:20px;height:20px;border-radius:50%;border:2px solid var(--muted);flex:0 0 20px;position:relative}
 .srow.on .rd{border-color:var(--acc)}.srow.on .rd::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--acc)}
+.dsh{flex:0 0 auto;padding:8px 12px;border-radius:11px;background:#0b95e8;color:#fff;font-size:12.5px;font-weight:800}
 </style>
 </head>
 <body>
@@ -2702,7 +2703,7 @@ const colRep = key => GIFTS.find(g => g.col === key);
 const ccard = ({ c, s }) => `<button class="ccard" data-a="col" data-v="${c.key}">${giftArt(colRep(c.key))}
   <div class="cn">${c.name}</div><div class="cf"><b class="num">${Pn(s.floor)}</b>${chgHtml(s.change)}</div>${spark(s.spark, s.change >= 0)}</button>`;
 const statusPill = s => ({ active: '<span class="status s-active">Активна</span>', wait: '<span class="status s-wait">Ожидает</span>', done: '<span class="status s-done">Завершено</span>' }[s]);
-const dealRow = d => `<div class="row deal">${giftArt(d.item)}<div class="rt"><b>${{ sell: 'Продажа', swap: 'Обмен', buy: 'Покупка', deal: 'Сделка' }[d.type]} · ${nm(d.item)}</b><span>#${d.item.num} · ${d.text}</span></div>${statusPill(d.status)}</div>`;
+const dealRow = d => `<div class="row deal">${giftArt(d.item)}<div class="rt"><b>${{ sell: 'Продажа', swap: 'Обмен', buy: 'Покупка', deal: 'Сделка' }[d.type]} · ${nm(d.item)}</b><span>#${d.item.num} · ${d.text}</span></div>${d.link ? `<button class="dsh" data-a="dshare" data-id="${d.id}">Ссылка</button>` : statusPill(d.status)}</div>`;
 const dealsHtml = () => S.deals.length ? `<div class="list">${S.deals.map(dealRow).join('')}</div>`
   : `<div class="empty"><b>🤝</b>Сделок пока нет. Выставьте подарок на продажу или предложите обмен.</div>`;
 const IC = {
@@ -2908,7 +2909,45 @@ function bindDeal() {
       : `<div class="row deal" style="margin:0">${giftArt(r.item)}<div class="rt"><b>${nm(r.item)} #${r.item.num}</b><span>${r.known ? r.item.model + ' · ' + r.item.bd + ' · ' + r.item.pat : 'Нет в базе маркета, модель и фон не определены'}</span></div></div>`; };
   $('#dgo').onclick = () => { const pr = parseFloat($('#dp').value), by = $('#db').value.trim();
     if (!cur) return toast('Укажите подарок: название и номер'); if (!(pr > 0)) return toast('Укажите цену');
-    addDeal('deal', cur, 'wait', (by ? (by[0] === '@' ? by : '@' + by) + ' · ' : '') + CURS[S.cur].sym + ' ' + pr.toLocaleString('ru-RU')); hap(); toast('Сделка создана'); S.dealOpen = false; render(false); };
+    addDeal('deal', cur, 'wait', (by ? (by[0] === '@' ? by : '@' + by) + ' · ' : '') + CURS[S.cur].sym + ' ' + pr.toLocaleString('ru-RU'));
+    const d = S.deals[0]; d.link = { c: cur.col, n: cur.num, p: +(pr / CURS[S.cur].rate()).toFixed(6), by: by ? (by[0] === '@' ? by : '@' + by) : '', s: TGU ? (TGU.username ? '@' + TGU.username : TGU.first_name) : 'продавец', u: TGU ? TGU.id : 0 };
+    hap(); S.dealOpen = false; render(false); shareDeal(d); };
+}
+
+/* ===== ссылка на сделку и принятие ===== */
+const BOT = 'TradeRelayerBot', WEBAPP = 'https://smertan1112.github.io/gifthub-app/index3.html';
+const b64e = o => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64d = t => JSON.parse(decodeURIComponent(escape(atob(t.replace(/-/g, '+').replace(/_/g, '/')))));
+const dealLinks = d => { const b = b64e(d.link); return { tg: `https://t.me/${BOT}?startapp=deal_${b}`, web: `${WEBAPP}#deal=${b}` }; };
+function shareDeal(d) {
+  const L = dealLinks(d), p = d.link, txt = `Сделка: ${COL[p.c].name} #${p.n} за ${P(p.p)}. Откройте и примите:`;
+  setBody(`<div class="st" style="text-align:center"><div style="font-size:42px;margin:4px 0">🤝</div><h2 style="margin:0 0 6px">Сделка создана</h2>
+    <div class="sub" style="margin:0 0 14px">Отправьте ссылку покупателю. Он откроет её в приложении и сможет принять сделку.</div>
+    <button class="btn primary" id="shs">Отправить в Telegram</button><button class="btn ghost" id="shc" style="margin-top:8px">Скопировать ссылку</button></div>`);
+  $('#shs').onclick = () => { const u = 'https://t.me/share/url?url=' + encodeURIComponent(L.tg) + '&text=' + encodeURIComponent(txt); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) { window.open(u, '_blank'); } };
+  $('#shc').onclick = () => { try { navigator.clipboard && navigator.clipboard.writeText(L.tg); } catch (e) {} hap('medium'); toast('Ссылка скопирована'); };
+  openSheet();
+}
+function dealOffer(p) {
+  const r = parseGift(COL[p.c].name + ' ' + p.n); if (!r || !r.item) return; const it = r.item, after = S.balance - p.p;
+  const me = TGU && TGU.username ? TGU.username.toLowerCase() : '', own = TGU && p.u && String(TGU.id) === String(p.u);
+  const forOther = p.by && me && p.by.replace(/^@/, '').toLowerCase() !== me;
+  setBody(`<div class="st"><h2>Вам предложили сделку</h2>${miniGift(it, r.known ? it.model + ' · ' + it.bd + ' · ' + it.pat : 'Коллекционный подарок')}
+    <div class="rows"><div><span>Продавец</span><b>${p.s || 'пользователь'}</b></div><div><span>Цена</span><b>${P(p.p)}</b></div><div><span>Ваш баланс</span><b>${P(S.balance)}</b></div><div class="big"><span>Останется</span><b ${after < 0 ? 'style="color:var(--down)"' : ''}>${P(after)}</b></div></div>
+    ${own ? '<div class="err" style="margin-top:8px">Это ваша сделка. Отправьте ссылку покупателю.</div>' : forOther ? `<div class="err" style="margin-top:8px">Сделка предназначена для ${p.by}.</div>` : after < 0 ? '<div class="err" style="margin-top:8px">Недостаточно средств. Пополните кошелёк.</div>' : ''}
+    <button class="btn primary" id="acc" ${own || forOther || after < 0 ? 'disabled' : ''}>Принять сделку</button>${after < 0 && !own && !forOther ? '<button class="btn ghost" id="dep">Пополнить кошелёк</button>' : ''}<button class="btn ghost" id="rej" style="margin-top:8px">Отклонить</button></div>`);
+  if ($('#dep')) $('#dep').onclick = depositSheet;
+  $('#rej').onclick = closeSheet;
+  $('#acc').onclick = () => progressStep({ items: ['Проверяем сделку', 'Списываем средства', 'Передаём подарок'], title: 'Принимаем сделку', okTitle: 'Сделка принята', okText: `«${nm(it)} #${it.num}» добавлен в «Мои подарки».`,
+    after: () => { S.balance -= p.p; const x = Object.assign({}, it, { id: 'b' + (++S.seq), where: 'vault', listed: null }); S.items.unshift(x);
+      addHist('buy', 'Сделка · ' + nm(it), -p.p); addDeal('deal', x, 'done', 'Куплено у ' + (p.s || 'пользователя') + ' за ' + fmt(p.p) + ' TON'); refresh(); } });
+  openSheet();
+}
+function openDealFromUrl() {
+  let t = ''; const sp2 = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+  if (sp2 && /^deal_/.test(sp2)) t = sp2.slice(5); else { const m = location.hash.match(/deal=([\w-]+)/); if (m) t = m[1]; }
+  if (!t) return;
+  try { const p = b64d(t); if (COL[p.c] && Number.isFinite(+p.n) && Number.isFinite(+p.p) && +p.p > 0) setTimeout(() => dealOffer({ c: p.c, n: +p.n, p: +p.p, by: String(p.by || '').slice(0, 40), s: String(p.s || '').slice(0, 40), u: p.u }), 500); } catch (e) {}
 }
 const VIEWS = { home: viewHome, market: viewMarket, gifts: viewInv, deal: viewDeal, wallet: viewWallet, more: viewMore };
 function render(anim = true) {
@@ -3264,7 +3303,7 @@ const A = {
   lot: d => { const l = findLot(d.id); if (l) lotSheet(l, 'market'); }, item: d => { const i = findItem(d.id); if (i) itemSheet(i); }, col: d => colSheet(d.v),
   mcol: d => { S.market.f.col = d.v === 'all' ? [] : [d.v]; S.market.col = 'all'; render(false); },
   invf: d => { S.inv = d.v; render(false); }, wf: d => { S.wf = d.v; render(false); },
-  mtier: d => { S.market.tier = d.v; if (S.tab !== 'market') go('market'); else render(false); }, mview: d => { S.market.view = d.v; render(false); }, mf: d => pickSheet(d.v), dealnew: () => dealNew(), mfs: () => filtersSheet(), msort: () => sortSheet(),
+  mtier: d => { S.market.tier = d.v; if (S.tab !== 'market') go('market'); else render(false); }, mview: d => { S.market.view = d.v; render(false); }, mf: d => pickSheet(d.v), dealnew: () => dealNew(), dshare: d => { const x = S.deals.find(y => String(y.id) === d.id); if (x && x.link) shareDeal(x); }, mfs: () => filtersSheet(), msort: () => sortSheet(),
   storage: () => { const u = 'https://t.me/' + CFG.storage.replace('@', ''); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) {} },
   relayer: () => { const u = 'https://t.me/' + CFG.escrow.replace('@', ''); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) {} },
   cur: d => { S.cur = d.v; hap(); render(false); setHeader(); }, thap: () => { S.hap = !S.hap; render(false); }
@@ -3274,6 +3313,7 @@ document.addEventListener('click', e => { const t = e.target.closest('[data-a]')
 /* ============ Запуск ============ */
 if (!CFG.demo) $$('.demo').forEach(x => x.style.display = 'none');
 render();
+openDealFromUrl();
 const sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
 if (sp && /^lot_/.test(sp)) { const l = findLot(sp.slice(4)); if (l) setTimeout(() => lotSheet(l, 'market'), 400); }
 </script>
