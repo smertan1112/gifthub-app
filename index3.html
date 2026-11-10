@@ -2882,14 +2882,23 @@ function parseGift(str) {
   return { item: { id: 'x' + c.key + num, col: c.key, num, model: '—', pat: '—', bd: 'Grape', mr: 0, br: 0, pr: 0, slug, img: 'https://nft.fragment.com/gift/' + slug.toLowerCase() + '.large.jpg' }, known: false };
 }
 function viewDeal() {
-  return `<div class="h1">Сделка</div>
-  <div class="list" style="padding:16px"><div class="fgl" style="margin-top:0">Подарок</div>
+  const form = S.dealOpen ? `<div class="list" style="padding:16px;margin-top:12px"><div class="fgl" style="margin-top:0">Подарок</div>
     <div class="search" style="margin-bottom:8px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="dg" placeholder="Название и номер: Plush Pepe 2861" autocomplete="off"></div>
     <div id="dprev"><div class="sub" style="margin:0 2px 4px">Введите номер подарка или ссылку t.me/nft/…</div></div>
     <div class="fgl">Цена, ${CURS[S.cur].sym}</div><div class="rng" style="grid-template-columns:1fr"><input id="dp" type="number" inputmode="decimal" placeholder="Сумма сделки"></div>
     <div class="fgl">Покупатель</div><div class="rng" style="grid-template-columns:1fr"><input id="db" placeholder="@username" autocomplete="off"></div>
-    <button class="btn primary" id="dgo" style="margin-top:16px">Создать сделку</button></div>
+    <button class="btn primary" id="dgo" style="margin-top:16px">Подтвердить сделку</button></div>` : '';
+  return `<div class="h1">Сделка</div>
+  ${S.dealOpen ? '' : '<button class="btn primary" data-a="dealnew">Создать сделку</button>'}${form}
   <section class="sec"><div class="sec-h"><h3>Мои сделки</h3><span>${S.deals.length ? S.deals.length + ' шт.' : ''}</span></div>${dealsHtml()}</section>`;
+}
+const dealAllowed = () => PROMO_ON || S.balance > 0 || S.items.length > 0;
+function dealNew() {
+  if (dealAllowed()) { S.dealOpen = true; render(false); const g = $('#dg'); g && g.focus(); return; }
+  setBody(`<div class="st" style="text-align:center"><div style="font-size:44px;margin:6px 0">🎁</div><h2 style="margin:0 0 8px">Сделку создать нельзя</h2>
+    <div class="sub" style="margin:0 0 18px">У вас нет активных подарков или баланса на боте.</div>
+    <button class="btn primary" data-a="tab" data-v="market" id="dm">Перейти в маркет</button></div>`);
+  $('#dm').addEventListener('click', closeSheet); openSheet();
 }
 function bindDeal() {
   let cur = null; const g = $('#dg'); if (!g) return;
@@ -2899,7 +2908,7 @@ function bindDeal() {
       : `<div class="row deal" style="margin:0">${giftArt(r.item)}<div class="rt"><b>${nm(r.item)} #${r.item.num}</b><span>${r.known ? r.item.model + ' · ' + r.item.bd + ' · ' + r.item.pat : 'Нет в базе маркета, модель и фон не определены'}</span></div></div>`; };
   $('#dgo').onclick = () => { const pr = parseFloat($('#dp').value), by = $('#db').value.trim();
     if (!cur) return toast('Укажите подарок: название и номер'); if (!(pr > 0)) return toast('Укажите цену');
-    addDeal('deal', cur, 'wait', (by ? (by[0] === '@' ? by : '@' + by) + ' · ' : '') + CURS[S.cur].sym + ' ' + pr.toLocaleString('ru-RU')); hap(); toast('Сделка создана'); render(false); };
+    addDeal('deal', cur, 'wait', (by ? (by[0] === '@' ? by : '@' + by) + ' · ' : '') + CURS[S.cur].sym + ' ' + pr.toLocaleString('ru-RU')); hap(); toast('Сделка создана'); S.dealOpen = false; render(false); };
 }
 const VIEWS = { home: viewHome, market: viewMarket, gifts: viewInv, deal: viewDeal, wallet: viewWallet, more: viewMore };
 function render(anim = true) {
@@ -3255,7 +3264,7 @@ const A = {
   lot: d => { const l = findLot(d.id); if (l) lotSheet(l, 'market'); }, item: d => { const i = findItem(d.id); if (i) itemSheet(i); }, col: d => colSheet(d.v),
   mcol: d => { S.market.f.col = d.v === 'all' ? [] : [d.v]; S.market.col = 'all'; render(false); },
   invf: d => { S.inv = d.v; render(false); }, wf: d => { S.wf = d.v; render(false); },
-  mtier: d => { S.market.tier = d.v; if (S.tab !== 'market') go('market'); else render(false); }, mview: d => { S.market.view = d.v; render(false); }, mf: d => pickSheet(d.v), mfs: () => filtersSheet(), msort: () => sortSheet(),
+  mtier: d => { S.market.tier = d.v; if (S.tab !== 'market') go('market'); else render(false); }, mview: d => { S.market.view = d.v; render(false); }, mf: d => pickSheet(d.v), dealnew: () => dealNew(), mfs: () => filtersSheet(), msort: () => sortSheet(),
   storage: () => { const u = 'https://t.me/' + CFG.storage.replace('@', ''); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) {} },
   relayer: () => { const u = 'https://t.me/' + CFG.escrow.replace('@', ''); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) {} },
   cur: d => { S.cur = d.v; hap(); render(false); setHeader(); }, thap: () => { S.hap = !S.hap; render(false); }
