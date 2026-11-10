@@ -40,7 +40,7 @@ input{font:inherit}
 .bpill b{font-size:15px}
 
 /* ===== нижняя навигация ===== */
-.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);
   padding:7px 8px calc(7px + env(safe-area-inset-bottom));background:rgba(10,14,24,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   border-top:1px solid var(--line)}
 .nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:10.5px;font-weight:650;color:var(--dim);transition:color .25s}
@@ -414,6 +414,7 @@ button.row{transition:background .2s}button.row:active{background:var(--s2)}
   <button data-a="tab" data-v="home" class="on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Главная</button>
   <button data-a="tab" data-v="market"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>Маркет</button>
   <button data-a="tab" data-v="gifts"><svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M12 9v12M3 14h18M12 9c-2-5-7-4-5 0M12 9c2-5 7-4 5 0"/></svg>Подарки</button>
+  <button data-a="tab" data-v="deal"><svg viewBox="0 0 24 24"><path d="M3 12l4-4 3 1 3-2 5 4-4 5-3-1-2 2z"/><path d="M3 12l3 3M21 11l-2-2M9 17l2 2"/></svg>Сделка</button>
   <button data-a="tab" data-v="wallet"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14.5" r="1"/></svg>Кошелёк</button>
   <button data-a="tab" data-v="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>Ещё</button>
 </nav>
@@ -2701,7 +2702,7 @@ const colRep = key => GIFTS.find(g => g.col === key);
 const ccard = ({ c, s }) => `<button class="ccard" data-a="col" data-v="${c.key}">${giftArt(colRep(c.key))}
   <div class="cn">${c.name}</div><div class="cf"><b class="num">${Pn(s.floor)}</b>${chgHtml(s.change)}</div>${spark(s.spark, s.change >= 0)}</button>`;
 const statusPill = s => ({ active: '<span class="status s-active">Активна</span>', wait: '<span class="status s-wait">Ожидает</span>', done: '<span class="status s-done">Завершено</span>' }[s]);
-const dealRow = d => `<div class="row deal">${giftArt(d.item)}<div class="rt"><b>${{ sell: 'Продажа', swap: 'Обмен', buy: 'Покупка' }[d.type]} · ${nm(d.item)}</b><span>#${d.item.num} · ${d.text}</span></div>${statusPill(d.status)}</div>`;
+const dealRow = d => `<div class="row deal">${giftArt(d.item)}<div class="rt"><b>${{ sell: 'Продажа', swap: 'Обмен', buy: 'Покупка', deal: 'Сделка' }[d.type]} · ${nm(d.item)}</b><span>#${d.item.num} · ${d.text}</span></div>${statusPill(d.status)}</div>`;
 const dealsHtml = () => S.deals.length ? `<div class="list">${S.deals.map(dealRow).join('')}</div>`
   : `<div class="empty"><b>🤝</b>Сделок пока нет. Выставьте подарок на продажу или предложите обмен.</div>`;
 const IC = {
@@ -2867,11 +2868,45 @@ const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256
 let PROMO_ON = false; try { PROMO_ON = localStorage.getItem('gh_promo') === PROMO_HASH; } catch (e) {}
 
 /* ============ Роутер ============ */
-const VIEWS = { home: viewHome, market: viewMarket, gifts: viewInv, wallet: viewWallet, more: viewMore };
+
+/* ============ Сделка: подарок по номеру ============ */
+const letters = x => String(x).toLowerCase().replace(/[^a-zа-я0-9]/g, '');
+function parseGift(str) {
+  let t = String(str || '').trim().replace(/^https?:\/\/(t\.me|telegram\.me)\/nft\//i, '').replace(/[?#].*$/, '');
+  const m = t.match(/^(.*?)[\s#\-_]*(\d{1,9})\s*$/); if (!m) return null;
+  const key = letters(m[1]), num = +m[2]; if (!key) return null;
+  const c = COLS.find(c => letters(c.name) === key || c.key === key); if (!c) return { err: 'Коллекция «' + m[1].trim() + '» не найдена' };
+  const known = GIFTS.find(g => g.col === c.key && g.num === num) || S.items.find(g => g.col === c.key && g.num === num);
+  if (known) return { item: known, known: true };
+  const slug = c.name.replace(/[^A-Za-z0-9]/g, '') + '-' + num;
+  return { item: { id: 'x' + c.key + num, col: c.key, num, model: '—', pat: '—', bd: 'Grape', mr: 0, br: 0, pr: 0, slug, img: 'https://nft.fragment.com/gift/' + slug.toLowerCase() + '.large.jpg' }, known: false };
+}
+function viewDeal() {
+  return `<div class="h1">Сделка</div>
+  <div class="list" style="padding:16px"><div class="fgl" style="margin-top:0">Подарок</div>
+    <div class="search" style="margin-bottom:8px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="dg" placeholder="Название и номер: Plush Pepe 2861" autocomplete="off"></div>
+    <div id="dprev"><div class="sub" style="margin:0 2px 4px">Введите номер подарка или ссылку t.me/nft/…</div></div>
+    <div class="fgl">Цена, ${CURS[S.cur].sym}</div><div class="rng" style="grid-template-columns:1fr"><input id="dp" type="number" inputmode="decimal" placeholder="Сумма сделки"></div>
+    <div class="fgl">Покупатель</div><div class="rng" style="grid-template-columns:1fr"><input id="db" placeholder="@username" autocomplete="off"></div>
+    <button class="btn primary" id="dgo" style="margin-top:16px">Создать сделку</button></div>
+  <section class="sec"><div class="sec-h"><h3>Мои сделки</h3><span>${S.deals.length ? S.deals.length + ' шт.' : ''}</span></div>${dealsHtml()}</section>`;
+}
+function bindDeal() {
+  let cur = null; const g = $('#dg'); if (!g) return;
+  g.oninput = () => { const r = parseGift(g.value); cur = r && r.item || null;
+    $('#dprev').innerHTML = !g.value.trim() ? '<div class="sub" style="margin:0 2px 4px">Введите номер подарка или ссылку t.me/nft/…</div>'
+      : !r ? '<div class="sub" style="margin:0 2px 4px">Формат: название и номер, например Plush Pepe 2861</div>' : r.err ? `<div class="sub" style="margin:0 2px 4px;color:#ff6178">${r.err}</div>`
+      : `<div class="row deal" style="margin:0">${giftArt(r.item)}<div class="rt"><b>${nm(r.item)} #${r.item.num}</b><span>${r.known ? r.item.model + ' · ' + r.item.bd + ' · ' + r.item.pat : 'Нет в базе маркета, модель и фон не определены'}</span></div></div>`; };
+  $('#dgo').onclick = () => { const pr = parseFloat($('#dp').value), by = $('#db').value.trim();
+    if (!cur) return toast('Укажите подарок: название и номер'); if (!(pr > 0)) return toast('Укажите цену');
+    addDeal('deal', cur, 'wait', (by ? (by[0] === '@' ? by : '@' + by) + ' · ' : '') + CURS[S.cur].sym + ' ' + pr.toLocaleString('ru-RU')); hap(); toast('Сделка создана'); render(false); };
+}
+const VIEWS = { home: viewHome, market: viewMarket, gifts: viewInv, deal: viewDeal, wallet: viewWallet, more: viewMore };
 function render(anim = true) {
   const v = $('#view'); v.innerHTML = `<div class="${anim ? 'page' : ''}">${VIEWS[S.tab]()}</div>`;
   $$('.nav button').forEach(b => b.classList.toggle('on', b.dataset.v === S.tab));
   if (S.tab === 'home') { countTo($('#balBig'), 0, S.balance, 1100, $('#balAlt')); }
+  if (S.tab === 'deal') bindDeal();
   if (S.tab === 'market') {
     const q = $('#q'); q.oninput = () => { S.market.q = q.value; $('#lotsGrid').innerHTML = lotsGridHtml(); $('#cnt').textContent = marketList().length + ' лотов'; };
   }
