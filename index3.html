@@ -376,6 +376,28 @@ button.row{transition:background .2s}button.row:active{background:var(--s2)}
 .lot-btn .ton path{fill:#fff;stroke:none}
 .lots.list .lot-btn,.lots.list .hrt,.lots.list .crt,.lots.list .lot-row .lot-num{display:none}
 .lots.list .lot-row{margin:9px 3px 0}.lots.list .lot-row .lot-n{color:inherit;text-shadow:none}
+
+.fbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.fsc{display:flex;gap:8px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}.fsc::-webkit-scrollbar{display:none}
+.ff{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:10px 13px;border-radius:13px;background:var(--s1);border:1px solid var(--line);font-size:13.5px;font-weight:650;color:#fff;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.ff.on{border-color:var(--acc);background:rgba(91,124,255,.18)}.ff svg{flex:0 0 auto;color:var(--muted)}
+.fi{position:relative;flex:0 0 42px;height:42px;border-radius:13px;background:var(--s1);border:1px solid var(--line);display:grid;place-items:center}
+.fi.on{border-color:var(--acc);background:rgba(91,124,255,.18)}.fi svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
+.fi i{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:var(--acc);font-size:11px;font-style:normal;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.pkl{max-height:48vh;overflow-y:auto;margin:0 -4px}
+.pk{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.pkn{flex:1;font-weight:650;font-size:14.5px}.pkc{color:var(--muted);font-size:13px}
+.bsw{width:26px;height:26px;border-radius:8px;flex:0 0 26px}.th2{width:30px;height:30px;border-radius:8px;object-fit:cover;flex:0 0 30px}
+.cb{width:22px;height:22px;border-radius:7px;border:2px solid var(--muted);flex:0 0 22px;position:relative}
+.cb.on{background:var(--acc);border-color:var(--acc)}.cb.on::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.fgl{margin:16px 0 8px;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.rng{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rng input{width:100%;padding:12px 14px;border-radius:13px;border:1px solid var(--line);background:var(--s1);color:#fff;font-size:15px;outline:0}
+.frow{display:flex;align-items:center;gap:10px;width:100%;padding:15px 2px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+.frow span{flex:1}.frow b{font-weight:600;font-size:13.5px;color:var(--muted);text-transform:none;letter-spacing:0;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.frow em{font-style:normal;color:var(--muted)}
+.srow{display:flex;align-items:center;gap:14px;width:100%;padding:13px 2px;text-align:left;font-size:15px;color:#fff}
+.rd{width:20px;height:20px;border-radius:50%;border:2px solid var(--muted);flex:0 0 20px;position:relative}
+.srow.on .rd{border-color:var(--acc)}.srow.on .rd::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--acc)}
 </style>
 </head>
 <body>
@@ -2616,7 +2638,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const fmt = n => Number(n).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const parse = v => parseFloat(String(v).replace(',', '.').replace(/[^0-9.]/g, ''));
-const S = { tab: 'home', balance: 0, cur: 'RUB', hap: true, market: { q: '', col: 'all', sort: 'new', tier: 'all', view: 'grid' }, inv: 'all', wf: 'all', items: [], lots: [], deals: [], history: [], shown: 0, seq: 100 };
+const S = { tab: 'home', balance: 0, cur: 'RUB', hap: true, market: { q: '', col: 'all', sort: 'new', tier: 'all', view: 'grid', f: { col: [], model: [], bd: [], pat: [], pmin: '', pmax: '', nmin: '', nmax: '' } }, inv: 'all', wf: 'all', items: [], lots: [], deals: [], history: [], shown: 0, seq: 100 };
 const rub = n => Math.round(n * CFG.rubPerTon).toLocaleString('ru-RU') + ' ₽';
 const CURS = { RUB: { sym: '₽', code: 'RUB', name: 'Рубли', rate: () => CFG.rubPerTon }, UAH: { sym: '₴', code: 'UAH', name: 'Гривны', rate: () => CFG.uahPerTon }, TON: { sym: 'T', code: 'TON', name: 'TON', rate: () => 1 } };
 const isFiat = () => S.cur !== 'TON';
@@ -2709,25 +2731,84 @@ function viewHome() {
   <section class="sec"><div class="sec-h"><h3>Мои сделки</h3><span>${S.deals.length ? S.deals.length + ' шт.' : ''}</span></div>${dealsHtml()}</section>`;
 }
 
-const SORTS = { new: 'Новые', asc: 'Сначала дешёвые', desc: 'Сначала дорогие', rare: 'Самые редкие', num: 'Малый номер' };
+const SORTS = { new: 'Время размещения (по убыванию)', old: 'Время размещения (по возрастанию)', asc: 'Цена (по возрастанию)', desc: 'Цена (по убыванию)',
+  mra: 'Редкость модели (по возрастанию)', mrd: 'Редкость модели (по убыванию)', bra: 'Редкость фона (по возрастанию)', brd: 'Редкость фона (по убыванию)',
+  pra: 'Редкость символа (по возрастанию)', prd: 'Редкость символа (по убыванию)', numa: 'Номер подарка (по возрастанию)', numd: 'Номер подарка (по убыванию)' };
+const fCount = () => { const f = S.market.f; return f.col.length + f.model.length + f.bd.length + f.pat.length + (f.pmin !== '' || f.pmax !== '' ? 1 : 0) + (f.nmin !== '' || f.nmax !== '' ? 1 : 0); };
 function marketList() {
-  const m = S.market, q = m.q.trim().toLowerCase();
-  let list = allLots().filter(l => m.col === 'all' || l.col === m.col);
-  if (q) list = list.filter(l => (nm(l) + ' #' + l.num + ' ' + l.model + ' ' + l.bd + ' ' + l.pat).toLowerCase().includes(q));
-  const by = { new: (a, b) => (a.mine ? -1 : 0) - (b.mine ? -1 : 0) || S.lots.indexOf(a) - S.lots.indexOf(b), asc: (a, b) => a.price - b.price, desc: (a, b) => b.price - a.price, rare: (a, b) => rareScore(b) - rareScore(a), num: (a, b) => a.num - b.num };
-  return list.sort(by[m.sort]);
+  const m = S.market, f = m.f, q = m.q.trim().toLowerCase();
+  if (m.col !== 'all') { f.col = [m.col]; m.col = 'all'; }
+  const r = CURS[S.cur].rate(), pmin = f.pmin === '' ? null : +f.pmin / r, pmax = f.pmax === '' ? null : +f.pmax / r, nmin = f.nmin === '' ? null : +f.nmin, nmax = f.nmax === '' ? null : +f.nmax;
+  let list = allLots().filter(l => (!f.col.length || f.col.includes(l.col)) && (!f.model.length || f.model.includes(l.model)) && (!f.bd.length || f.bd.includes(l.bd)) && (!f.pat.length || f.pat.includes(l.pat))
+    && (pmin == null || l.price >= pmin - 1e-9) && (pmax == null || l.price <= pmax + 1e-9) && (nmin == null || l.num >= nmin) && (nmax == null || l.num <= nmax));
+  if (q) { const ws = q.replace(/#/g, '').split(/\s+/).filter(Boolean); list = list.filter(l => { const h = (nm(l) + ' ' + l.num + ' ' + l.model + ' ' + l.bd + ' ' + l.pat + ' ' + (bdRu[l.bd] || '')).toLowerCase(); return ws.every(w => h.includes(w)); }); }
+  const T = l => S.lots.indexOf(l), mine = (a, b) => (a.mine ? -1 : 0) - (b.mine ? -1 : 0);
+  const by = { new: (a, b) => mine(a, b) || T(a) - T(b), old: (a, b) => mine(a, b) || T(b) - T(a), asc: (a, b) => a.price - b.price, desc: (a, b) => b.price - a.price,
+    mra: (a, b) => a.mr - b.mr, mrd: (a, b) => b.mr - a.mr, bra: (a, b) => a.br - b.br, brd: (a, b) => b.br - a.br, pra: (a, b) => a.pr - b.pr, prd: (a, b) => b.pr - a.pr, numa: (a, b) => a.num - b.num, numd: (a, b) => b.num - a.num };
+  return list.sort(by[m.sort] || by.new);
+}
+const bdRu = { Black: 'чёрный', Burgundy: 'бордовый', 'Dark Green': 'тёмно-зелёный зеленый', 'Deep Cyan': 'бирюзовый голубой', Emerald: 'изумрудный зелёный зеленый', Gunmetal: 'серый', Lavender: 'лавандовый фиолетовый', 'Mexican Pink': 'розовый', Mustard: 'горчичный жёлтый желтый', 'Navy Blue': 'синий', 'Old Gold': 'золотой золото', 'Seal Brown': 'коричневый', 'Shamrock Green': 'зелёный зеленый', Turquoise: 'бирюзовый', Grape: 'фиолетовый', 'Midnight Blue': 'синий тёмно-синий', 'Roman Silver': 'серебряный серый', 'Desert Sand': 'песочный бежевый', Orange: 'оранжевый', Copper: 'медный', Malachite: 'зелёный зеленый', Amber: 'янтарный жёлтый желтый', Pistachio: 'фисташковый зелёный зеленый', Moonstone: 'серый голубой', 'Pacific Green': 'зелёный зеленый' };
+function refreshMarket() {
+  if (S.tab !== 'market') return; const g = $('#lotsGrid'); if (!g) return;
+  g.innerHTML = lotsGridHtml(); $('#cnt').textContent = marketList().length + ' лотов'; $('#fbar').innerHTML = fbarHtml();
+}
+const CARET = '<svg viewBox="0 0 10 6" width="10" height="6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+function fbarHtml() {
+  const f = S.market.f, n = fCount();
+  const chip = (k, t) => { const a = f[k]; const lab = a.length === 1 ? (k === 'col' ? COL[a[0]].name : a[0]) : a.length ? t + ' · ' + a.length : t; return `<button class="ff${a.length ? ' on' : ''}" data-a="mf" data-v="${k}">${lab}${CARET}</button>`; };
+  return `<button class="fi${n ? ' on' : ''}" data-a="mfs" aria-label="Фильтры"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>${n ? `<i>${n}</i>` : ''}</button>
+  <div class="fsc">${chip('col', 'NFT')}${chip('model', 'Модель')}${chip('bd', 'Фон')}${chip('pat', 'Символ')}</div>
+  <button class="fi${S.market.sort !== 'new' ? ' on' : ''}" data-a="msort" aria-label="Сортировка"><svg viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button>`;
+}
+function pickSheet(kind, back) {
+  const T = { col: 'NFT', model: 'Модель', bd: 'Фон', pat: 'Символ' }[kind], cnt = new Map();
+  allLots().forEach(l => { const v = kind === 'col' ? l.col : l[kind]; cnt.set(v, (cnt.get(v) || 0) + 1); });
+  const opts = [...cnt].map(([v, n]) => ({ v, n, label: kind === 'col' ? COL[v].name : v })).sort((a, b) => a.label.localeCompare(b.label));
+  const sel = new Set(S.market.f[kind]);
+  setBody(`<div class="st"><h2 style="margin:0 0 10px">${T}</h2><div class="search" style="margin-bottom:8px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="pq" placeholder="Поиск…" autocomplete="off"></div>
+    <div class="pkl" id="pkl"></div><div class="twoc" style="margin-top:12px"><button class="btn ghost" id="pkr">Сбросить</button><button class="btn primary" id="pkd"></button></div></div>`);
+  let shown = [];
+  const upd = () => { $('#pkd').textContent = back ? 'Готово' : 'Показать (' + marketList().length + ')'; };
+  const draw = () => {
+    const q = $('#pq').value.trim().toLowerCase(); shown = opts.filter(o => !q || o.label.toLowerCase().includes(q) || (kind === 'bd' && (bdRu[o.v] || '').includes(q))).sort((a, b) => sel.has(b.v) - sel.has(a.v) || a.label.localeCompare(b.label)).slice(0, 300);
+    $('#pkl').innerHTML = shown.map((o, i) => { const sw = kind === 'bd' ? `<span class="bsw" style="background:linear-gradient(135deg,${(BD[o.v] || BD.Grape).c[0]},${(BD[o.v] || BD.Grape).c[1]})"></span>` : kind === 'col' && GIFT_IMG[colRep(o.v).slug] ? `<img class="th2" src="${GIFT_IMG[colRep(o.v).slug]}" alt="">` : '';
+      return `<div class="pk" data-i="${i}">${sw}<span class="pkn">${o.label}</span><span class="pkc">${o.n}</span><i class="cb${sel.has(o.v) ? ' on' : ''}"></i></div>`; }).join('') || '<div class="empty" style="padding:20px">Ничего не найдено</div>';
+  };
+  $('#pq').oninput = draw; draw(); upd();
+  $('#pkl').onclick = e => { const r = e.target.closest('.pk'); if (!r) return; const o = shown[+r.dataset.i]; sel.has(o.v) ? sel.delete(o.v) : sel.add(o.v); S.market.f[kind] = [...sel]; r.querySelector('.cb').classList.toggle('on'); hap(); refreshMarket(); upd(); };
+  $('#pkr').onclick = () => { sel.clear(); S.market.f[kind] = []; draw(); refreshMarket(); upd(); };
+  $('#pkd').onclick = () => back ? filtersSheet() : closeSheet();
+  openSheet();
+}
+function filtersSheet() {
+  const f = S.market.f, row = (k, t) => `<button class="frow" data-k="${k}"><span>${t}</span><b>${f[k].length ? f[k].length === 1 ? (k === 'col' ? COL[f[k][0]].name : f[k][0]) : f[k].length + ' выбрано' : 'Все'}</b><em>›</em></button>`;
+  setBody(`<div class="st"><h2 style="margin:0 0 6px">Фильтры</h2>
+    <div class="fgl">Цена, ${CURS[S.cur].sym}</div><div class="rng"><input id="pmin" type="number" inputmode="decimal" placeholder="от" value="${f.pmin}"><input id="pmax" type="number" inputmode="decimal" placeholder="до" value="${f.pmax}"></div>
+    ${row('col', 'NFT')}${row('model', 'Модель')}${row('bd', 'Фон')}${row('pat', 'Символ')}
+    <div class="fgl">Номер подарка</div><div class="rng"><input id="nmin" type="number" inputmode="numeric" placeholder="от" value="${f.nmin}"><input id="nmax" type="number" inputmode="numeric" placeholder="до" value="${f.nmax}"></div>
+    <div class="twoc" style="margin-top:16px"><button class="btn ghost" id="fr">Сбросить</button><button class="btn primary" id="fd"></button></div></div>`);
+  const upd = () => { $('#fd').textContent = 'Показать результаты (' + marketList().length + ')'; };
+  ['pmin', 'pmax', 'nmin', 'nmax'].forEach(k => { $('#' + k).oninput = e => { f[k] = e.target.value.trim(); refreshMarket(); upd(); }; });
+  $$('.frow', body).forEach(b => b.onclick = () => pickSheet(b.dataset.k, true));
+  $('#fr').onclick = () => { S.market.f = { col: [], model: [], bd: [], pat: [], pmin: '', pmax: '', nmin: '', nmax: '' }; refreshMarket(); filtersSheet(); };
+  $('#fd').onclick = closeSheet; upd(); openSheet();
+}
+function sortSheet() {
+  setBody(`<div class="st"><h2 style="margin:0 0 6px">Сортировать по</h2>${Object.entries(SORTS).map(([k, v]) => `<button class="srow${S.market.sort === k ? ' on' : ''}" data-k="${k}"><i class="rd"></i><span>${v}</span></button>`).join('')}</div>`);
+  $$('.srow', body).forEach(b => b.onclick = () => { S.market.sort = b.dataset.k; hap(); closeSheet(); refreshMarket(); });
+  openSheet();
 }
 function lotsGridHtml() {
   const list = marketList();
-  const cs = S.market.col !== 'all' ? `<button class="btn ghost sm" style="margin-bottom:12px" data-a="col" data-v="${S.market.col}">📈 График и статистика коллекции</button>` : '';
+  const cs = S.market.f.col.length === 1 ? `<button class="btn ghost sm" style="margin-bottom:12px" data-a="col" data-v="${S.market.f.col[0]}">📈 График и статистика коллекции</button>` : '';
   return cs + (list.length ? `<div class="lots${S.market.view === 'list' ? ' list' : ''}">${list.map(lotCard).join('')}</div>` : `<div class="empty"><b>🔍</b>Ничего не найдено. Измените запрос или фильтр.</div>`);
 }
 function viewMarket() {
   const m = S.market;
   return `<div class="h1">Маркет</div>
   <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Название, номер, модель…" value="${m.q.replace(/"/g, '&quot;')}" autocomplete="off"></div>
-  <div class="fchips"><button class="fc ${m.col === 'all' ? 'on' : ''}" data-a="mcol" data-v="all">Все</button>${COLS.map(c => { const r = colRep(c.key), im = GIFT_IMG[r.slug]; return `<button class="fc ${m.col === c.key ? 'on' : ''}" data-a="mcol" data-v="${c.key}">${im ? `<img class="th" src="${im}" alt="">` : ''}${c.name}</button>`; }).join('')}</div>
-  <div class="toolbar"><span id="cnt">${marketList().length} лотов</span><span class="vtog"><button class="${m.view === 'grid' ? 'on' : ''}" data-a="mview" data-v="grid" aria-label="Сетка">▦</button><button class="${m.view === 'list' ? 'on' : ''}" data-a="mview" data-v="list" aria-label="Список">☰</button></span><select class="sel" id="sort">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${m.sort === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+  <div class="fbar" id="fbar">${fbarHtml()}</div>
+  <div class="toolbar"><span id="cnt">${marketList().length} лотов</span><span class="vtog"><button class="${m.view === 'grid' ? 'on' : ''}" data-a="mview" data-v="grid" aria-label="Сетка">▦</button><button class="${m.view === 'list' ? 'on' : ''}" data-a="mview" data-v="list" aria-label="Список">☰</button></span></div>
   <div id="lotsGrid">${lotsGridHtml()}</div>`;
 }
 const whereTag = it => it.listed ? '<span class="tag tsale">Продаётся</span>' : it.locked ? '<span class="tag tsale">В обмене</span>' : it.where === 'profile' ? '<span class="tag tprof">В профиле</span>' : '<span class="tag tvault">На платформе</span>';
@@ -2792,7 +2873,6 @@ function render(anim = true) {
   if (S.tab === 'home') { countTo($('#balBig'), 0, S.balance, 1100, $('#balAlt')); }
   if (S.tab === 'market') {
     const q = $('#q'); q.oninput = () => { S.market.q = q.value; $('#lotsGrid').innerHTML = lotsGridHtml(); $('#cnt').textContent = marketList().length + ' лотов'; };
-    $('#sort').onchange = e => { S.market.sort = e.target.value; hap(); $('#lotsGrid').innerHTML = lotsGridHtml(); };
   }
   if (S.tab === 'more') {
     const g = $('#promoGo');
@@ -3137,9 +3217,9 @@ const A = {
   tab: d => go(d.v), sell: () => sellFlow(), swap: () => swapFlow(), withdraw: withdrawSheet, deposit: depositSheet, support: supportSheet, rules: rulesSheet, about: aboutSheet,
   fav: (d, t) => { S.fav = S.fav || {}; S.fav[d.id] = !S.fav[d.id]; t.classList.toggle('on', !!S.fav[d.id]); t.blur && t.blur(); document.querySelectorAll('.hrt[data-id="' + d.id + '"]').forEach(x => x.classList.toggle('on', !!S.fav[d.id])); },
   lot: d => { const l = findLot(d.id); if (l) lotSheet(l, 'market'); }, item: d => { const i = findItem(d.id); if (i) itemSheet(i); }, col: d => colSheet(d.v),
-  mcol: d => { S.market.col = d.v; render(false); $('.fchips .on') && $('.fchips .on').scrollIntoView({ inline: 'center', block: 'nearest' }); },
+  mcol: d => { S.market.f.col = d.v === 'all' ? [] : [d.v]; S.market.col = 'all'; render(false); },
   invf: d => { S.inv = d.v; render(false); }, wf: d => { S.wf = d.v; render(false); },
-  mtier: d => { S.market.tier = d.v; if (S.tab !== 'market') go('market'); else render(false); }, mview: d => { S.market.view = d.v; render(false); },
+  mtier: d => { S.market.tier = d.v; if (S.tab !== 'market') go('market'); else render(false); }, mview: d => { S.market.view = d.v; render(false); }, mf: d => pickSheet(d.v), mfs: () => filtersSheet(), msort: () => sortSheet(),
   storage: () => { const u = 'https://t.me/' + CFG.storage.replace('@', ''); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) {} },
   relayer: () => { const u = 'https://t.me/' + CFG.escrow.replace('@', ''); try { tg && tg.openTelegramLink ? tg.openTelegramLink(u) : window.open(u, '_blank'); } catch (e) {} },
   cur: d => { S.cur = d.v; hap(); render(false); setHeader(); }, thap: () => { S.hap = !S.hap; render(false); }
