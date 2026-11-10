@@ -2702,8 +2702,8 @@ const spark = (arr, up) => {
 const colRep = key => GIFTS.find(g => g.col === key);
 const ccard = ({ c, s }) => `<button class="ccard" data-a="col" data-v="${c.key}">${giftArt(colRep(c.key))}
   <div class="cn">${c.name}</div><div class="cf"><b class="num">${Pn(s.floor)}</b>${chgHtml(s.change)}</div>${spark(s.spark, s.change >= 0)}</button>`;
-const statusPill = s => ({ active: '<span class="status s-active">Активна</span>', wait: '<span class="status s-wait">Ожидает</span>', done: '<span class="status s-done">Завершено</span>' }[s]);
-const dealRow = d => `<div class="row deal">${giftArt(d.item)}<div class="rt"><b>${{ sell: 'Продажа', swap: 'Обмен', buy: 'Покупка', deal: 'Сделка' }[d.type]} · ${nm(d.item)}</b><span>#${d.item.num} · ${d.text}</span></div>${d.link ? `<button class="dsh" data-a="dshare" data-id="${d.id}">Ссылка</button>` : statusPill(d.status)}</div>`;
+const statusPill = s => ({ active: '<span class="status s-active">Активна</span>', wait: '<span class="status s-wait">Ожидает</span>', paid: '<span class="status s-active">Оплачено</span>', done: '<span class="status s-done">Завершено</span>' }[s]);
+const dealRow = d => `<div class="row deal">${giftArt(d.item)}<div class="rt"><b>${{ sell: 'Продажа', swap: 'Обмен', buy: 'Покупка', deal: 'Сделка' }[d.type]} · ${nm(d.item)}</b><span>#${d.item.num} · ${d.text}</span></div>${statusPill(d.status)}${d.link ? `<button class="dsh" data-a="dshare" data-id="${d.id}">Ссылка</button>` : ''}</div>`;
 const dealsHtml = () => S.deals.length ? `<div class="list">${S.deals.map(dealRow).join('')}</div>`
   : `<div class="empty"><b>🤝</b>Сделок пока нет. Выставьте подарок на продажу или предложите обмен.</div>`;
 const IC = {
@@ -2909,8 +2909,9 @@ function bindDeal() {
       : `<div class="row deal" style="margin:0">${giftArt(r.item)}<div class="rt"><b>${nm(r.item)} #${r.item.num}</b><span>${r.known ? r.item.model + ' · ' + r.item.bd + ' · ' + r.item.pat : 'Нет в базе маркета, модель и фон не определены'}</span></div></div>`; };
   $('#dgo').onclick = () => { const pr = parseFloat($('#dp').value), by = $('#db').value.trim();
     if (!cur) return toast('Укажите подарок: название и номер'); if (!(pr > 0)) return toast('Укажите цену');
+    const tonP = +(pr / CURS[S.cur].rate()).toFixed(6); if (S.balance + 1e-9 < tonP) { toast('Недостаточно средств на балансе'); return depositSheet(); }
     addDeal('deal', cur, 'wait', (by ? (by[0] === '@' ? by : '@' + by) + ' · ' : '') + CURS[S.cur].sym + ' ' + pr.toLocaleString('ru-RU'));
-    const d = S.deals[0]; d.link = { c: cur.col, n: cur.num, p: +(pr / CURS[S.cur].rate()).toFixed(6), by: by ? (by[0] === '@' ? by : '@' + by) : '', s: TGU ? (TGU.username ? '@' + TGU.username : TGU.first_name) : 'продавец', u: TGU ? TGU.id : 0 };
+    const d = S.deals[0]; S.balance = Math.max(0, +(S.balance - tonP).toFixed(6)); setHeader(); addHist('buy', 'Сделка · ' + nm(cur), -tonP); d.status = 'paid'; d.text += ' · оплачено с баланса'; d.link = { c: cur.col, n: cur.num, p: +(pr / CURS[S.cur].rate()).toFixed(6), by: by ? (by[0] === '@' ? by : '@' + by) : '', s: TGU ? (TGU.username ? '@' + TGU.username : TGU.first_name) : 'продавец', u: TGU ? TGU.id : 0 };
     hap(); S.dealOpen = false; render(false); shareDeal(d); };
 }
 
