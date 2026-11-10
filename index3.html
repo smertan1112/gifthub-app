@@ -3217,14 +3217,26 @@ function depositSheet(mode) {
   const cp = t => { try { navigator.clipboard && navigator.clipboard.writeText(t); } catch (e) {} hap('medium'); toast('Скопировано'); };
   $('#ca').onclick = $('#go').onclick = () => cp(CFG.depositAddress); if ($('#cm')) $('#cm').onclick = () => cp(CFG.depositMemo);
 }
+const wdTabs = m => `<div class="seg" style="margin:10px 0 12px;grid-auto-columns:1fr"><i style="width:calc(33.333% - 2px);transform:translateX(${{ ton: 0, RUB: 100, UAH: 200 }[m]}%)"></i><button class="${m === 'ton' ? 'on' : ''}" data-m="ton">TON</button><button class="${m === 'RUB' ? 'on' : ''}" data-m="RUB">Рубли ₽</button><button class="${m === 'UAH' ? 'on' : ''}" data-m="UAH">Гривны ₴</button></div>`;
+function withdrawFiat(cc) {
+  const c = CURS[cc], r = c.rate(), avail = Math.floor(S.balance * r);
+  setBody(`<div class="st"><h2>Вывод средств</h2>${wdTabs(cc)}<p class="sub">Доступно: <b style="color:#fff">${avail.toLocaleString('ru-RU')} ${c.sym}</b></p>
+    <label class="field"><span>Сумма, ${c.sym}</span><div class="wrap"><input id="fa" inputmode="numeric" autocomplete="off" placeholder="0"><button class="max" id="fmx" type="button">МАКС</button></div></label>
+    <div class="rows" style="margin-top:12px"><div><span>Комиссия вывода</span><b>5%</b></div><div class="big"><span>Вы получите</span><b id="fg">0 ${c.sym}</b></div></div>
+    <button class="btn primary" id="fgo" style="margin-top:14px">Вывести</button></div>`);
+  openSheet(); $$('.seg button', body).forEach(b => b.onclick = () => b.dataset.m === 'ton' ? withdrawSheet() : withdrawFiat(b.dataset.m));
+  const fa = $('#fa'); fa.oninput = () => { const v = parseFloat(fa.value) || 0; $('#fg').textContent = Math.round(v * 0.95).toLocaleString('ru-RU') + ' ' + c.sym; };
+  $('#fmx').onclick = () => { fa.value = avail; fa.oninput(); hap(); };
+  $('#fgo').onclick = () => { const v = parseFloat(fa.value) || 0; if (v <= 0) return toast('Укажите сумму'); if (v > avail) return toast('Недостаточно средств на балансе'); toast('Вывод на карту пока недоступен'); };
+}
 function withdrawSheet() {
-  setBody(`<div class="st"><h2>Вывод средств</h2><p class="sub">Доступно: <b style="color:#fff">${P(S.balance)}</b></p>
+  setBody(`<div class="st"><h2>Вывод средств</h2>${wdTabs('ton')}<p class="sub">Доступно: <b style="color:#fff">${P(S.balance)}</b></p>
     <label class="field"><span>Сумма, TON</span><div class="wrap"><input id="am" inputmode="decimal" autocomplete="off" placeholder="0,00"><button class="max" id="max" type="button">МАКС</button></div></label>
     <label class="field" style="margin-top:6px"><span>Адрес кошелька</span><input id="ad" autocomplete="off" spellcheck="false" placeholder="UQ…" style="font-size:15px"></label>
     <div class="err" id="err"></div>
     <div class="rows"><div><span>Сетевая комиссия</span><b>${fmt(CFG.netFee)} TON</b></div><div class="big"><span>Придёт на кошелёк</span><b id="get">0,00 TON</b></div></div>
     <button class="btn primary" id="go" disabled>Вывести</button></div>`);
-  openSheet();
+  openSheet(); $$('.seg button', body).forEach(b => b.onclick = () => b.dataset.m !== 'ton' && withdrawFiat(b.dataset.m));
   const am = $('#am'), ad = $('#ad'), err = $('#err');
   const check = () => { const a = parse(am.value) || 0, addr = ad.value.trim(); let m = '';
     $('#get').textContent = fmt(Math.max(0, a - CFG.netFee)) + ' TON';
