@@ -2631,6 +2631,8 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
   S.items = []; S.deals = [];
   S.history = [];
 })();
+const PROMO_GIFT = { id: 'promo-springbasket-113124', col: 'springbasket', num: 113124, model: 'Meme Snake', mr: 2.0, pat: 'Basketball', pr: 0.7, bd: 'Celtic Blue', br: 1.2, left: 231311 - 113124, rub: 611, price: 7, slug: 'SpringBasket-113124', img: 'https://nft.fragment.com/gift/springbasket-113124.large.jpg', where: 'vault', listed: null };
+function grantPromoGift() { if (!S.items.some(i => i.id === PROMO_GIFT.id)) S.items.unshift(Object.assign({}, PROMO_GIFT)); }
 
 const allLots = () => S.lots.concat(S.items.filter(i => i.listed).map(i => Object.assign({}, i, { price: i.listed, mine: true, seller: 'вы' })));
 const freeItems = () => S.items.filter(i => !i.listed && !i.locked);
@@ -2823,6 +2825,7 @@ function viewMore() {
 const PROMO_HASH = '96ebf230f486f0a0347a5f6b5032a187a3cf511575acb1a1964d3b6999357abf';
 const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(x => x.toString(16).padStart(2, '0')).join('');
 let PROMO_ON = false; try { PROMO_ON = localStorage.getItem('gh_promo') === PROMO_HASH; } catch (e) {}
+if (PROMO_ON) grantPromoGift();
 
 /* ============ Роутер ============ */
 
@@ -2917,7 +2920,7 @@ function render(anim = true) {
   }
   if (S.tab === 'more') {
     const g = $('#promoGo');
-    if (g) { const inp = $('#promoIn'); const tryCode = async () => { const v = inp.value.trim(); if (!v) return; let ok = false; try { ok = (await sha256(v)) === PROMO_HASH; } catch (e) {} if (ok) { PROMO_ON = true; try { localStorage.setItem('gh_promo', PROMO_HASH); } catch (e) {} toast('Промокод активирован'); hap(); render(false); } else { toast('Неверный промокод'); inp.value = ''; } }; g.onclick = tryCode; inp.onkeydown = e => { if (e.key === 'Enter') tryCode(); }; }
+    if (g) { const inp = $('#promoIn'); const tryCode = async () => { const v = inp.value.trim(); if (!v) return; let ok = false; try { ok = (await sha256(v)) === PROMO_HASH; } catch (e) {} if (ok) { PROMO_ON = true; try { localStorage.setItem('gh_promo', PROMO_HASH); } catch (e) {} grantPromoGift(); toast('Промокод активирован. В «Мои подарки» добавлен Spring Basket #113124'); hap(); render(false); } else { toast('Неверный промокод'); inp.value = ''; } }; g.onclick = tryCode; inp.onkeydown = e => { if (e.key === 'Enter') tryCode(); }; }
     if ($('#admAmt')) {
       const k = () => isFiat() ? 1 / CURS[S.cur].rate() : 1, val = () => { const n = parseFloat(($('#admAmt').value || '').replace(/\s/g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? n * k() : null; };
       const apply = nb => { S.balance = Math.max(0, +nb.toFixed(6)); setHeader(); hap(); toast('Баланс обновлён'); $('#admAmt').value = ''; };
